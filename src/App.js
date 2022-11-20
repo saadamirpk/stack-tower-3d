@@ -1,104 +1,97 @@
-import { React,useState, useEffect, useRef } from "react";
-import { Canvas, useFrame } from "@react-three/fiber";
+import { React, useState, useEffect } from "react";
+import { Canvas } from "@react-three/fiber";
 import { OrthographicCamera } from "@react-three/drei";
-
-function BoxModel({positionHeight, animate, direction, base}) {
-    const myBox = useRef(null);
-    useFrame(() => {
-        if(animate){
-            if(direction==='left'){
-                myBox.current.position.z +=0.03;
-            }else if(direction==='right'){
-                myBox.current.position.x -=0.03;
-            }
-        }
-    })
-
-    const getPosition = ()=>{
-        if(base){
-            return [0,positionHeight,0]
-        }else{
-            return [-0.5,positionHeight,-0.5]
-        }
-    }
-
-    return (
-    <mesh ref={myBox} position={[0,positionHeight,0]}>
-        <boxGeometry args={[3,1,3]} />
-        <meshStandardMaterial color={`hsl(${180+positionHeight*4},100%,50%)`} />
-    </mesh>);
-}
+import BoxModel from "./Components/BoxModel";
 
 function App() {
+  const [stackHeight, setStackHeight] = useState(1);
+  const [stack, setStack] = useState([{ height: 0, x: 3, z: 3 }]);
+  const [gameStarted, setGameStarted] = useState(false);
+  const width = window.innerWidth;
+  const height = window.innerHeight;
 
-    const [stackHeight,setStackHeight] = useState(0);
-    const [stack,setStack] = useState([]);
-    const [gameStarted,setGameStarted] = useState(false);
-    const width = window.innerWidth;
-    const height = window.innerHeight;
+  useEffect(() => {
+    window.addEventListener("click", () => handleClick());
+    return () => window.removeEventListener("click", () => handleClick());
+    // eslint-disable-next-line
+  }, [gameStarted]);
 
-    useEffect(()=>{
-        window.addEventListener('click',handleClick);
-        return () => window.removeEventListener('click', handleClick);
-    },[gameStarted])
-
-    function handleClick (e) {
-
+  const handleClick = (e) => {
+    if (!gameStarted) {
+      return;
     }
+    generateBox();
+  };
 
-    const generateBox=()=>{
-        setStack((prev)=>[...prev,{height:stackHeight+1,color:"red"}])
-        setStackHeight(prev=>prev+1);
-    }
+  const generateBox = () => {
+    setStack((prev) => {
+      return [
+        ...prev,
+        {
+          height: prev[prev.length - 1].height + 1,
+          x: 3,
+          z: 3,
+        },
+      ];
+    });
+    setStackHeight((prev) => prev + 1);
+  };
 
-    const renderBoxes = ()=>{
-        return stack.map((box, index)=>{
-            let animate=false;
-            let direction='';
-            if(index===stackHeight-1){
-                animate=true;
-                if(index%2===0){
-                    direction='right'
-                }else{
-                    direction='left'
-                }
-            }
-            return <BoxModel animate={animate} direction={direction} positionHeight={box.height} base={false}/>
-        })
-    }
-
-    const getCameraPosition = ()=>{
-        if(stackHeight<2){
-            return [0,4,4];
+  const renderBoxes = () => {
+    return stack.map((box, index) => {
+      let animate = false;
+      let direction = "";
+      if (index > 0 && index === stackHeight - 1) {
+        animate = true;
+        if (index % 2 === 0) {
+          direction = "right";
+        } else {
+          direction = "left";
         }
-        return [0,stackHeight+3,4];
+      }
+      return (
+        <BoxModel
+          key={index}
+          xSize={box.x}
+          zSize={box.z}
+          animate={animate}
+          height={box.height}
+          direction={direction}
+        />
+      );
+    });
+  };
+
+  const getCameraPosition = () => {
+    if (stackHeight < 2) {
+      return [0, 4, 4];
     }
+    return [0, stackHeight + 3, 4];
+  };
 
   return (
-   <>
-   <button onClick={()=>setGameStarted(true)}>Start Game</button>
-   <button onClick={()=>generateBox()}>new Box</button>
-   <Canvas>
-    <OrthographicCamera
-        makeDefault
-        left={-width/2}
-        right={width/2}
-        top={height/2}
-        bottom={-height/2}
-        near={1} far={100}
-        zoom={100}
-        position={getCameraPosition()}
-        rotation={[-0.5,0,0]}
-        lookAt={[0,0,0]}
-    />
-    <ambientLight intensity={0.6}/>
-    <directionalLight position={[10,20,0]} intensity={0.6}/>
-    <group rotation={[0,Math.PI/4,0]}>
-        {renderBoxes()}
-        <BoxModel positionHeight={0} base={true}/>
-    </group>
-   </Canvas>
-   </>
+    <>
+      <button onClick={() => setGameStarted(true)}>Start Game</button>
+      <button onClick={() => generateBox()}>new Box</button>
+      <Canvas>
+        <OrthographicCamera
+          makeDefault
+          left={-width / 2}
+          right={width / 2}
+          top={height / 2}
+          bottom={-height / 2}
+          near={-5}
+          far={200}
+          zoom={100}
+          position={getCameraPosition()}
+          rotation={[-0.5, 0, 0]}
+          lookAt={[0, 0, 0]}
+        />
+        <ambientLight intensity={0.6} />
+        <directionalLight position={[10, 20, 0]} intensity={0.6} />
+        <group rotation={[0, Math.PI / 4, 0]}>{renderBoxes()}</group>
+      </Canvas>
+    </>
   );
 }
 
