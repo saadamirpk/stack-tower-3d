@@ -4,23 +4,64 @@ import { OrthographicCamera } from "@react-three/drei";
 import BoxModel from "./Components/BoxModel";
 
 function App() {
-  const [stackHeight, setStackHeight] = useState(1);
-  const [stack, setStack] = useState([{ height: 0, x: 3, z: 3 }]);
-  const [gameStarted, setGameStarted] = useState(false);
+  const [stack, setStack] = useState([
+    { x: 0, y: 0, z: 0, width: 3, depth: 3 },
+  ]);
+  const [gameStarted, setGameStarted] = useState(true);
+  const [topBoxPosition, setTopBoxPosition] = useState({
+    x: 0,
+    y: 0,
+    z: 0,
+    width: 3,
+    depth: 3,
+  });
   const width = window.innerWidth;
   const height = window.innerHeight;
-
-  useEffect(() => {
-    window.addEventListener("click", () => handleClick());
-    return () => window.removeEventListener("click", () => handleClick());
-    // eslint-disable-next-line
-  }, [gameStarted]);
 
   const handleClick = (e) => {
     if (!gameStarted) {
       return;
     }
-    generateBox();
+    if (stack.length > 1) {
+      cutFallenBox();
+    } else {
+      generateBox();
+    }
+  };
+
+  const cutFallenBox = () => {
+    const prevBox = stack[stack.length - 2];
+    const topBox = topBoxPosition;
+    let direction = "";
+    let checkSize = "";
+    if (stack.length % 2 === 0) {
+      direction = "z";
+      checkSize = "depth";
+    } else {
+      direction = "x";
+      checkSize = "width";
+    }
+    const delta = Math.abs(prevBox[direction] - topBox[direction]);
+    const overlap = prevBox[checkSize] - delta;
+    if (overlap <= 0) {
+      //Outside boundary, end game
+      let stackUpdate = stack;
+      stackUpdate.pop();
+      setStack(stackUpdate);
+      setGameStarted(false);
+    } else {
+      //Touching box, cut it and generate next box of same size and position
+      //Set fixed position of current box
+      //topBoxPosition[checkSize] = Math.abs(delta - prevBox[checkSize]);
+      let stackUpdate = stack;
+      //Understand and fix this part
+      topBoxPosition[checkSize] = overlap / prevBox[checkSize];
+      topBoxPosition[direction] -= delta / 2;
+      stackUpdate[stackUpdate.length - 1] = topBoxPosition;
+      console.log(stackUpdate);
+      setStack(stackUpdate);
+      generateBox();
+    }
   };
 
   const generateBox = () => {
@@ -28,20 +69,21 @@ function App() {
       return [
         ...prev,
         {
-          height: prev[prev.length - 1].height + 1,
-          x: 3,
-          z: 3,
+          x: prev[prev.length - 1].x,
+          y: prev[prev.length - 1].y + 1,
+          z: prev[prev.length - 1].z,
+          width: prev[prev.length - 1].width,
+          depth: prev[prev.length - 1].depth,
         },
       ];
     });
-    setStackHeight((prev) => prev + 1);
   };
 
   const renderBoxes = () => {
     return stack.map((box, index) => {
       let animate = false;
       let direction = "";
-      if (index > 0 && index === stackHeight - 1) {
+      if (index > 0 && index === stack.length - 1) {
         animate = true;
         if (index % 2 === 0) {
           direction = "right";
@@ -52,28 +94,36 @@ function App() {
       return (
         <BoxModel
           key={index}
-          xSize={box.x}
-          zSize={box.z}
+          xSize={box.width}
+          zSize={box.depth}
           animate={animate}
-          height={box.height}
+          height={box.y}
+          xPos={box.x}
+          zPos={box.z}
           direction={direction}
+          gameStarted={gameStarted}
+          crossedLimit={() => crossedLimit()}
+          updatePosition={setTopBoxPosition}
         />
       );
     });
   };
 
+  const crossedLimit = () => {
+    console.log("MISSED");
+    setGameStarted(false);
+  };
+
   const getCameraPosition = () => {
-    if (stackHeight < 2) {
+    if (stack.length < 2) {
       return [0, 4, 4];
     }
-    return [0, stackHeight + 3, 4];
+    return [0, stack.length + 3, 4];
   };
 
   return (
     <>
-      <button onClick={() => setGameStarted(true)}>Start Game</button>
-      <button onClick={() => generateBox()}>new Box</button>
-      <Canvas>
+      <Canvas onClick={() => handleClick()}>
         <OrthographicCamera
           makeDefault
           left={-width / 2}
