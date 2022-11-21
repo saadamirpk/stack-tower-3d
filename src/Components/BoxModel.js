@@ -32,6 +32,9 @@ export default function BoxModel({
             width: myBox.current.geometry.parameters.width,
             depth: myBox.current.geometry.parameters.depth,
           });
+        } else {
+          myBox.current.position.x = xPos;
+          myBox.current.position.z = zPos;
         }
       }
     }

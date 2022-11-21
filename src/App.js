@@ -1,7 +1,8 @@
-import { React, useState, useEffect } from "react";
+import { React, useState } from "react";
 import { Canvas } from "@react-three/fiber";
 import { OrthographicCamera } from "@react-three/drei";
 import BoxModel from "./Components/BoxModel";
+import { nanoid } from "nanoid";
 
 function App() {
   const [stack, setStack] = useState([
@@ -32,34 +33,54 @@ function App() {
   const cutFallenBox = () => {
     const prevBox = stack[stack.length - 2];
     const topBox = topBoxPosition;
+    /*
+    let fallingBox = {
+      id: nanoid(),
+      x: 0,
+      y: topBoxPosition.y,
+      z: 0,
+      width: 0,
+      depth: 0,
+    };
+    */
     let direction = "";
     let checkSize = "";
     if (stack.length % 2 === 0) {
       direction = "z";
       checkSize = "depth";
+      //fallingBox.x = topBoxPosition.x;
+      //fallingBox.width = topBoxPosition.width;
     } else {
       direction = "x";
       checkSize = "width";
+      //fallingBox.z = topBoxPosition.z;
+      //fallingBox.depth = topBoxPosition.depth;
     }
-    const delta = Math.abs(prevBox[direction] - topBox[direction]);
+    const delta = Math.abs(prevBox[direction] - topBox[direction]).toFixed(2);
     const overlap = prevBox[checkSize] - delta;
+
     if (overlap <= 0) {
       //Outside boundary, end game
       let stackUpdate = stack;
       stackUpdate.pop();
       setStack(stackUpdate);
       setGameStarted(false);
+      console.log("No Overlap");
     } else {
       //Touching box, cut it and generate next box of same size and position
       //Set fixed position of current box
       //topBoxPosition[checkSize] = Math.abs(delta - prevBox[checkSize]);
+      console.log("Overlap");
       let stackUpdate = stack;
-      //Understand and fix this part
-      topBoxPosition[checkSize] = overlap / prevBox[checkSize];
-      topBoxPosition[direction] -= delta / 2;
+      topBoxPosition[checkSize] = overlap;
+      if (prevBox[direction] - topBox[direction] > 0) {
+        topBoxPosition[direction] += delta / 2;
+      } else {
+        topBoxPosition[direction] -= delta / 2;
+      }
       stackUpdate[stackUpdate.length - 1] = topBoxPosition;
-      console.log(stackUpdate);
       setStack(stackUpdate);
+
       generateBox();
     }
   };
@@ -109,16 +130,27 @@ function App() {
     });
   };
 
+  /*
+  const renderFallingBoxes = () => {
+    return fallingStack.map((box) => {
+      return <FallingBox key={box.id} box={box} removeBox={removeBox} />;
+    });
+  };
+  const removeBox = (id) => {
+    console.log("Remove", id);
+  };
+  */
+
   const crossedLimit = () => {
     console.log("MISSED");
     setGameStarted(false);
   };
 
   const getCameraPosition = () => {
-    if (stack.length < 2) {
+    if (stack.length < 3) {
       return [0, 4, 4];
     }
-    return [0, stack.length + 3, 4];
+    return [0, stack.length + 2, 4];
   };
 
   return (
