@@ -1,11 +1,23 @@
-import { React, useRef } from "react";
+import { React, useEffect, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
-import { Physics } from "@react-three/cannon";
+import { useBox } from "@react-three/cannon";
 
 export default function BoxModel({ box, removeBox }) {
-  const myBox = useRef(null);
+  const state = useRef({
+    position: getPosition(),
+  });
+
+  const [myBox, api] = useBox(() => ({
+    mass: 1,
+    position: getPosition(),
+  }));
+
+  useEffect(() => {
+    api.position.subscribe((p) => (state.current.position = p));
+  }, [api]);
+
   useFrame(() => {
-    if (myBox.current.position.y < 0) {
+    if (state.current.position[1] < -10) {
       removeBox(box.id);
     }
   });
@@ -15,11 +27,9 @@ export default function BoxModel({ box, removeBox }) {
   }
 
   return (
-    <Physics>
-      <mesh ref={myBox} position={getPosition()}>
-        <boxGeometry args={[box.width, 1, box.depth]} />
-        <meshStandardMaterial color={`hsl(${180 + box.y * 4},100%,50%)`} />
-      </mesh>
-    </Physics>
+    <mesh ref={myBox} position={getPosition()}>
+      <boxGeometry args={[box.width, 1, box.depth]} />
+      <meshStandardMaterial color={`hsl(${200 + box.y * 4},100%,50%)`} />
+    </mesh>
   );
 }
