@@ -1,9 +1,9 @@
-import { React, useState } from "react";
+import { React, useState, useEffect } from "react";
 import { Canvas } from "@react-three/fiber";
 import { OrthographicCamera } from "@react-three/drei";
 import BoxModel from "./Components/BoxModel";
 import FallingBox from "./Components/FallingBox";
-import { Physics } from "@react-three/cannon";
+import { Debug, Physics } from "@react-three/cannon";
 import { nanoid } from "nanoid";
 
 function App() {
@@ -22,6 +22,10 @@ function App() {
   const width = window.innerWidth;
   const height = window.innerHeight;
 
+  useEffect(() => {
+    console.log(stack);
+  }, [stack]);
+
   const handleClick = (e) => {
     if (!gameStarted) {
       return;
@@ -34,6 +38,7 @@ function App() {
   };
 
   const cutFallenBox = () => {
+    console.log("Checking");
     const prevBox = stack[stack.length - 2];
     const topBox = topBoxPosition;
     console.log(topBoxPosition);
@@ -98,6 +103,7 @@ function App() {
   };
 
   const generateBox = () => {
+    console.log("BOX GEN");
     setStack((prev) => {
       return [
         ...prev,
@@ -116,7 +122,7 @@ function App() {
     return stack.map((box, index) => {
       let animate = false;
       let direction = "";
-      if (index > 0 && index === stack.length - 1) {
+      if (index > 0 && index === stack.length - 1 && gameStarted) {
         animate = true;
         if (index % 2 === 0) {
           direction = "right";
@@ -189,8 +195,10 @@ function App() {
         <directionalLight position={[10, 20, 0]} intensity={0.6} />
         <Physics>
           <group rotation={[0, Math.PI / 4, 0]}>
-            {renderBoxes()}
-            {renderFallingBoxes()}
+            <Debug color="white" scale={1.1}>
+              {renderBoxes()}
+              {renderFallingBoxes()}
+            </Debug>
           </group>
         </Physics>
       </Canvas>

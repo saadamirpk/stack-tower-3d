@@ -69,7 +69,7 @@ export default function BoxModel({
 
   const difficulty = () => {
     const dif = 0.01 * height;
-    return dif + 0.05;
+    return dif + 0.1;
   };
 
   const crossed = () => {
@@ -88,6 +88,9 @@ export default function BoxModel({
   function getPosition() {
     if (height === 0) {
       return [0, 0, 0];
+    }
+    if (!animate) {
+      return [xPos, height, zPos];
     } else {
       if (direction === "left") {
         return [xPos, height, -10];
