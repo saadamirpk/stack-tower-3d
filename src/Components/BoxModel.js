@@ -1,5 +1,6 @@
-import { React, useRef } from "react";
+import { React, useRef, useEffect } from "react";
 import { useFrame } from "@react-three/fiber";
+import { useBox } from "@react-three/cannon";
 
 export default function BoxModel({
   height,
@@ -13,7 +14,21 @@ export default function BoxModel({
   updatePosition,
   gameStarted,
 }) {
-  const myBox = useRef(null);
+  const state = useRef({
+    position: getPosition(),
+  });
+
+  const [myBox, api] = useBox(() => ({
+    mass: 2,
+    position: getPosition(),
+    args: [xSize, 1, zSize],
+    type: "Static",
+  }));
+
+  useEffect(() => {
+    api.position.subscribe((p) => (state.current.position = p));
+  }, [api]);
+
   useFrame(() => {
     if (gameStarted) {
       if (crossed()) {
@@ -21,32 +36,49 @@ export default function BoxModel({
       } else {
         if (animate) {
           if (direction === "left") {
-            myBox.current.position.z += 0.065 + 0.001 * height;
+            myBox.current.position.z = myBox.current.position.z + difficulty();
+            api.position.set(
+              state.current.position[0],
+              state.current.position[1],
+              state.current.position[2] + difficulty()
+            );
           } else if (direction === "right") {
-            myBox.current.position.x -= 0.065 + 0.001 * height;
+            myBox.current.position.x = myBox.current.position.x - difficulty();
+            api.position.set(
+              state.current.position[0] - difficulty(),
+              state.current.position[1],
+              state.current.position[2]
+            );
           }
           updatePosition({
-            x: myBox.current.position.x,
-            y: height,
-            z: myBox.current.position.z,
+            x: state.current.position[0],
+            y: state.current.position[1],
+            z: state.current.position[2],
             width: myBox.current.geometry.parameters.width,
             depth: myBox.current.geometry.parameters.depth,
           });
         } else {
+          api.position.set(xPos, height, zPos);
           myBox.current.position.x = xPos;
+          myBox.current.position.y = height;
           myBox.current.position.z = zPos;
         }
       }
     }
   });
 
+  const difficulty = () => {
+    const dif = 0.01 * height;
+    return dif + 0.1;
+  };
+
   const crossed = () => {
     if (direction === "left") {
-      if (myBox.current.position.z > 15) {
+      if (state.current.position[2] > 15) {
         return true;
       }
     } else if (direction === "right") {
-      if (myBox.current.position.x < -15) {
+      if (state.current.position[0] < -15) {
         return true;
       }
     }
@@ -55,12 +87,17 @@ export default function BoxModel({
 
   function getPosition() {
     if (height === 0) {
-      return [0, height, 0];
+      return [0, 0, 0];
+    }
+    if (!animate) {
+      return [xPos, height, zPos];
     } else {
       if (direction === "left") {
         return [xPos, height, -10];
       } else if (direction === "right") {
         return [10, height, zPos];
+      } else {
+        return [xPos, height, zPos];
       }
     }
   }
@@ -68,7 +105,7 @@ export default function BoxModel({
   return (
     <mesh ref={myBox} position={getPosition()}>
       <boxGeometry args={[xSize, 1, zSize]} />
-      <meshStandardMaterial color={`hsl(${180 + height * 4},100%,50%)`} />
+      <meshStandardMaterial color={`hsl(${200 + height * 4},100%,50%)`} />
     </mesh>
   );
 }

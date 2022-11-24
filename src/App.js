@@ -1,10 +1,13 @@
-import { React, useState } from "react";
+import { React, useState, useEffect } from "react";
 import { Canvas } from "@react-three/fiber";
 import { OrthographicCamera } from "@react-three/drei";
 import BoxModel from "./Components/BoxModel";
+import FallingBox from "./Components/FallingBox";
+import { Debug, Physics } from "@react-three/cannon";
 import { nanoid } from "nanoid";
 
 function App() {
+  const [fallingStack, setFallingStack] = useState([]);
   const [stack, setStack] = useState([
     { x: 0, y: 0, z: 0, width: 3, depth: 3 },
   ]);
@@ -19,6 +22,10 @@ function App() {
   const width = window.innerWidth;
   const height = window.innerHeight;
 
+  useEffect(() => {
+    console.log(stack);
+  }, [stack]);
+
   const handleClick = (e) => {
     if (!gameStarted) {
       return;
@@ -31,61 +38,72 @@ function App() {
   };
 
   const cutFallenBox = () => {
+    console.log("Checking");
     const prevBox = stack[stack.length - 2];
     const topBox = topBoxPosition;
-    /*
+    console.log(topBoxPosition);
+
     let fallingBox = {
       id: nanoid(),
       x: 0,
-      y: topBoxPosition.y,
+      y: topBox.y,
       z: 0,
       width: 0,
       depth: 0,
     };
-    */
+
     let direction = "";
     let checkSize = "";
     if (stack.length % 2 === 0) {
       direction = "z";
       checkSize = "depth";
-      //fallingBox.x = topBoxPosition.x;
-      //fallingBox.width = topBoxPosition.width;
+      fallingBox.x = topBox.x;
+      fallingBox.width = topBox.width;
     } else {
       direction = "x";
       checkSize = "width";
-      //fallingBox.z = topBoxPosition.z;
-      //fallingBox.depth = topBoxPosition.depth;
+      fallingBox.z = topBox.z;
+      fallingBox.depth = topBox.depth;
     }
     const delta = Math.abs(prevBox[direction] - topBox[direction]).toFixed(2);
     const overlap = prevBox[checkSize] - delta;
 
     if (overlap <= 0) {
       //Outside boundary, end game
+      console.log("No Overlap");
       let stackUpdate = stack;
       stackUpdate.pop();
       setStack(stackUpdate);
       setGameStarted(false);
-      console.log("No Overlap");
+      fallingBox[direction] = topBox[direction];
+      fallingBox[checkSize] = topBox[checkSize];
     } else {
       //Touching box, cut it and generate next box of same size and position
       //Set fixed position of current box
-      //topBoxPosition[checkSize] = Math.abs(delta - prevBox[checkSize]);
+      //topBox[checkSize] = Math.abs(delta - prevBox[checkSize]);
       console.log("Overlap");
-      let stackUpdate = stack;
-      topBoxPosition[checkSize] = overlap;
+      topBox[checkSize] = overlap;
+      fallingBox[checkSize] = delta;
+      fallingBox[direction] = topBox[direction];
       if (prevBox[direction] - topBox[direction] > 0) {
-        topBoxPosition[direction] += delta / 2;
+        fallingBox[direction] -= overlap / 2;
+        topBox[direction] += delta / 2;
       } else {
-        topBoxPosition[direction] -= delta / 2;
+        fallingBox[direction] += overlap / 2;
+        topBox[direction] -= delta / 2;
       }
-      stackUpdate[stackUpdate.length - 1] = topBoxPosition;
+      let stackUpdate = stack;
+      stackUpdate[stackUpdate.length - 1] = topBox;
       setStack(stackUpdate);
-
       generateBox();
     }
+    setFallingStack((prev) => {
+      return [...prev, fallingBox];
+    });
   };
 
   const generateBox = () => {
+    console.log("BOX GEN");
     setStack((prev) => {
       return [
         ...prev,
@@ -104,7 +122,7 @@ function App() {
     return stack.map((box, index) => {
       let animate = false;
       let direction = "";
-      if (index > 0 && index === stack.length - 1) {
+      if (index > 0 && index === stack.length - 1 && gameStarted) {
         animate = true;
         if (index % 2 === 0) {
           direction = "right";
@@ -112,9 +130,13 @@ function App() {
           direction = "left";
         }
       }
+      let key = nanoid();
+      if (index === stack.length - 1) {
+        key = index;
+      }
       return (
         <BoxModel
-          key={index}
+          key={key}
           xSize={box.width}
           zSize={box.depth}
           animate={animate}
@@ -130,19 +152,19 @@ function App() {
     });
   };
 
-  /*
   const renderFallingBoxes = () => {
     return fallingStack.map((box) => {
       return <FallingBox key={box.id} box={box} removeBox={removeBox} />;
     });
   };
+
   const removeBox = (id) => {
-    console.log("Remove", id);
+    let stackUpdate = fallingStack;
+    stackUpdate = stackUpdate.filter((box) => box.id !== id);
+    setFallingStack(stackUpdate);
   };
-  */
 
   const crossedLimit = () => {
-    console.log("MISSED");
     setGameStarted(false);
   };
 
@@ -171,7 +193,14 @@ function App() {
         />
         <ambientLight intensity={0.6} />
         <directionalLight position={[10, 20, 0]} intensity={0.6} />
-        <group rotation={[0, Math.PI / 4, 0]}>{renderBoxes()}</group>
+        <Physics>
+          <group rotation={[0, Math.PI / 4, 0]}>
+            <Debug color="white" scale={1.1}>
+              {renderBoxes()}
+              {renderFallingBoxes()}
+            </Debug>
+          </group>
+        </Physics>
       </Canvas>
     </>
   );
