@@ -13,6 +13,7 @@ function App() {
     { x: 0, y: 0, z: 0, width: 3, depth: 3 },
   ]);
   const [gameStarted, setGameStarted] = useState(false);
+  const [BGColor, setBGColor] = useState("#000");
   const [topBoxPosition, setTopBoxPosition] = useState({
     x: 0,
     y: 0,
@@ -33,6 +34,42 @@ function App() {
       generateBox();
     }
   };
+
+  const handleButton = (e) => {
+    if (e.key === " " || e.code === "Space" || e.keyCode === 32) {
+      if (!gameStarted) {
+        return;
+      }
+      if (stack.length > 1) {
+        cutFallenBox();
+      } else {
+        generateBox();
+      }
+    }
+  };
+
+  useEffect(() => {
+    let bg = "#000";
+    if (stack.length > 3) {
+      bg = "#10122b";
+    }
+    if (stack.length > 10) {
+      bg = "#24003b";
+    }
+    if (stack.length > 20) {
+      bg = "#2b0125";
+    }
+    if (stack.length > 30) {
+      bg = "#360113";
+    }
+    if (stack.length > 40) {
+      bg = "#400000";
+    }
+    if (BGColor !== bg) {
+      setBGColor(bg);
+    }
+    //eslint-disable-next-line
+  }, [stack]);
 
   const cutFallenBox = () => {
     console.log("Checking");
@@ -190,32 +227,38 @@ function App() {
 
   return (
     <>
-      {!gameStarted && (
-        <Screen score={stack.length - 1} startGame={startNewGame} />
-      )}
-      <Canvas onClick={() => handleClick()}>
-        <OrthographicCamera
-          makeDefault
-          left={-width / 2}
-          right={width / 2}
-          top={height / 2}
-          bottom={-height / 2}
-          near={-5}
-          far={200}
-          zoom={100}
-          position={getCameraPosition()}
-          rotation={[-0.5, 0, 0]}
-          lookAt={[0, 0, 0]}
-        />
-        <ambientLight intensity={0.6} />
-        <directionalLight position={[10, 20, 0]} intensity={0.6} />
-        <Physics>
-          <group rotation={[0, Math.PI / 4, 0]}>
-            {renderBoxes()}
-            {renderFallingBoxes()}
-          </group>
-        </Physics>
-      </Canvas>
+      <div
+        className="app-wrapper"
+        style={{ backgroundColor: BGColor }}
+        onKeyUp={(e) => handleButton(e)}
+      >
+        {!gameStarted && (
+          <Screen score={stack.length - 1} startGame={startNewGame} />
+        )}
+        <Canvas onClick={() => handleClick()}>
+          <OrthographicCamera
+            makeDefault
+            left={-width / 2}
+            right={width / 2}
+            top={height / 2}
+            bottom={-height / 2}
+            near={-5}
+            far={200}
+            zoom={100}
+            position={getCameraPosition()}
+            rotation={[-0.5, 0, 0]}
+            lookAt={[0, 0, 0]}
+          />
+          <ambientLight intensity={0.6} />
+          <directionalLight position={[10, 20, 0]} intensity={0.6} />
+          <Physics>
+            <group rotation={[0, Math.PI / 4, 0]}>
+              {renderBoxes()}
+              {renderFallingBoxes()}
+            </group>
+          </Physics>
+        </Canvas>
+      </div>
     </>
   );
 }

@@ -76,12 +76,12 @@ export default function BoxModel({
       dif = 0.01 * (height / 1.2);
     }
     if (dif > 2.5) {
-      dif = 0.01 * height;
-    }
-    if (dif > 3.0) {
       dif = 0.01 * (height / 0.9);
     }
-    return dif + 0.15;
+    if (dif > 3.0) {
+      dif = 0.01 * (height / 0.75);
+    }
+    return dif + 0.12;
   };
 
   const crossed = () => {
