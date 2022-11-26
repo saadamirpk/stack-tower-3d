@@ -68,8 +68,20 @@ export default function BoxModel({
   });
 
   const difficulty = () => {
-    const dif = 0.01 * height;
-    return dif + 0.1;
+    let dif = 0.01 * (height / 1.5);
+    if (dif > 1.0) {
+      dif = 0.01 * (height / 1.35);
+    }
+    if (dif > 2.0) {
+      dif = 0.01 * (height / 1.2);
+    }
+    if (dif > 2.5) {
+      dif = 0.01 * height;
+    }
+    if (dif > 3.0) {
+      dif = 0.01 * (height / 0.9);
+    }
+    return dif + 0.15;
   };
 
   const crossed = () => {
@@ -93,9 +105,9 @@ export default function BoxModel({
       return [xPos, height, zPos];
     } else {
       if (direction === "left") {
-        return [xPos, height, -10];
+        return [xPos, height, -15];
       } else if (direction === "right") {
-        return [10, height, zPos];
+        return [15, height, zPos];
       } else {
         return [xPos, height, zPos];
       }
