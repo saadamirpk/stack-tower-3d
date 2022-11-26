@@ -3,7 +3,8 @@ import { Canvas } from "@react-three/fiber";
 import { OrthographicCamera } from "@react-three/drei";
 import BoxModel from "./Components/BoxModel";
 import FallingBox from "./Components/FallingBox";
-import { Debug, Physics } from "@react-three/cannon";
+import Screen from "./Components/Screen";
+import { Physics } from "@react-three/cannon";
 import { nanoid } from "nanoid";
 
 function App() {
@@ -11,7 +12,7 @@ function App() {
   const [stack, setStack] = useState([
     { x: 0, y: 0, z: 0, width: 3, depth: 3 },
   ]);
-  const [gameStarted, setGameStarted] = useState(true);
+  const [gameStarted, setGameStarted] = useState(false);
   const [topBoxPosition, setTopBoxPosition] = useState({
     x: 0,
     y: 0,
@@ -21,10 +22,6 @@ function App() {
   });
   const width = window.innerWidth;
   const height = window.innerHeight;
-
-  useEffect(() => {
-    console.log(stack);
-  }, [stack]);
 
   const handleClick = (e) => {
     if (!gameStarted) {
@@ -103,7 +100,6 @@ function App() {
   };
 
   const generateBox = () => {
-    console.log("BOX GEN");
     setStack((prev) => {
       return [
         ...prev,
@@ -152,6 +148,23 @@ function App() {
     });
   };
 
+  const startNewGame = async () => {
+    if (!gameStarted) {
+      setFallingStack([]);
+      setStack([{ x: 0, y: 0, z: 0, width: 3, depth: 3 }]);
+      setTopBoxPosition({
+        x: 0,
+        y: 0,
+        z: 0,
+        width: 3,
+        depth: 3,
+      });
+      setGameStarted(true);
+      await new Promise((resolve) => setTimeout(resolve, 500));
+      generateBox();
+    }
+  };
+
   const renderFallingBoxes = () => {
     return fallingStack.map((box) => {
       return <FallingBox key={box.id} box={box} removeBox={removeBox} />;
@@ -177,6 +190,9 @@ function App() {
 
   return (
     <>
+      {!gameStarted && (
+        <Screen score={stack.length - 1} startGame={startNewGame} />
+      )}
       <Canvas onClick={() => handleClick()}>
         <OrthographicCamera
           makeDefault
@@ -195,10 +211,8 @@ function App() {
         <directionalLight position={[10, 20, 0]} intensity={0.6} />
         <Physics>
           <group rotation={[0, Math.PI / 4, 0]}>
-            <Debug color="white" scale={1.1}>
-              {renderBoxes()}
-              {renderFallingBoxes()}
-            </Debug>
+            {renderBoxes()}
+            {renderFallingBoxes()}
           </group>
         </Physics>
       </Canvas>
