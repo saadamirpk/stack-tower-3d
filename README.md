@@ -2,7 +2,7 @@
 
 This project was made with Cannonjs, Threejs, 3-Fiber, 3-drei and React!
 
-[Live Demo](https://stack-tower-3d-gwbuo967y-saadamirpk.vercel.app)
+[Live Demo](https://stack-tower-3d.vercel.app)
 
 ![Demo](/src/img/demo.png)
 
