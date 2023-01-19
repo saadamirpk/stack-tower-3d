@@ -2,6 +2,10 @@
 
 This project was made with Cannonjs, Threejs, 3-Fiber, 3-drei and React!
 
+[Live Demo](https://stack-tower-3d-gwbuo967y-saadamirpk.vercel.app)
+
+![Demo](/src/img/demo.png)
+
 ## About the Project
 
 A 3D stack tower game built with Three.js, React Three Fiber, and React. It is a fun and interactive browser-based game that utilizes WebGL and the Three.js library to render 3D graphics within the browser. The game could involves building a tower by stacking blocks on top of each other, with the goal being to build the tallest tower possible without it collapsing.
