@@ -2,6 +2,7 @@ import { React, useState, useEffect } from "react";
 import { Canvas } from "@react-three/fiber";
 import { OrthographicCamera } from "@react-three/drei";
 import BoxModel from "./Components/BoxModel";
+import SolidBox from "./Components/SolidBox";
 import FallingBox from "./Components/FallingBox";
 import Screen from "./Components/Screen";
 import { Physics } from "@react-three/cannon";
@@ -15,21 +16,19 @@ function App() {
 
     useEffect(() => {
         function handleResize() {
-            // Set window width/height to state
             setWindowSize({
                 width: window.innerWidth,
                 height: window.innerHeight,
             });
         }
         window.addEventListener("resize", handleResize);
-        // Call handler right away so state gets updated with initial window size
         handleResize();
         return () => window.removeEventListener("resize", handleResize);
     }, []);
 
     const [fallingStack, setFallingStack] = useState([]);
     const [stack, setStack] = useState([
-        { x: 0, y: 0, z: 0, width: 3, depth: 3 },
+        { x: 0, z: 0, height: 0, width: 3, depth: 3 },
     ]);
     const [gameStarted, setGameStarted] = useState(false);
     const [BGColor, setBGColor] = useState("#000");
@@ -37,33 +36,13 @@ function App() {
         x: 0,
         y: 0,
         z: 0,
-        width: 3,
-        depth: 3,
     });
     const width = window.innerWidth;
     const height = window.innerHeight;
 
-    const handleClick = (e) => {
-        if (!gameStarted) {
-            return;
-        }
-        if (stack.length > 1) {
+    const handleClick = () => {
+        if (gameStarted) {
             cutFallenBox();
-        } else {
-            generateBox();
-        }
-    };
-
-    const handleButton = (e) => {
-        if (e.key === " " || e.code === "Space" || e.keyCode === 32) {
-            if (!gameStarted) {
-                return;
-            }
-            if (stack.length > 1) {
-                cutFallenBox();
-            } else {
-                generateBox();
-            }
         }
     };
 
@@ -91,11 +70,8 @@ function App() {
     }, [stack]);
 
     const cutFallenBox = () => {
-        console.log("Checking");
-        const prevBox = stack[stack.length - 2];
-        const topBox = topBoxPosition;
-        console.log(topBoxPosition);
-
+        let prevBox = stack[stack.length - 2];
+        let topBox = topBoxPosition;
         let fallingBox = {
             id: nanoid(),
             x: 0,
@@ -111,12 +87,12 @@ function App() {
             direction = "z";
             checkSize = "depth";
             fallingBox.x = topBox.x;
-            fallingBox.width = topBox.width;
+            fallingBox.width = prevBox.width;
         } else {
             direction = "x";
             checkSize = "width";
             fallingBox.z = topBox.z;
-            fallingBox.depth = topBox.depth;
+            fallingBox.depth = prevBox.depth;
         }
         const delta = Math.abs(prevBox[direction] - topBox[direction]).toFixed(
             2
@@ -124,19 +100,13 @@ function App() {
         const overlap = prevBox[checkSize] - delta;
 
         if (overlap <= 0) {
-            //Outside boundary, end game
-            console.log("No Overlap");
             let stackUpdate = stack;
             stackUpdate.pop();
-            setStack(stackUpdate);
+            setStack([...stackUpdate]);
             setGameStarted(false);
             fallingBox[direction] = topBox[direction];
-            fallingBox[checkSize] = topBox[checkSize];
+            fallingBox[checkSize] = prevBox[checkSize];
         } else {
-            //Touching box, cut it and generate next box of same size and position
-            //Set fixed position of current box
-            console.log("Overlap");
-            topBox[checkSize] = overlap;
             fallingBox[checkSize] = delta;
             fallingBox[direction] = topBox[direction];
             if (prevBox[direction] - topBox[direction] > 0) {
@@ -146,9 +116,19 @@ function App() {
                 fallingBox[direction] += overlap / 2;
                 topBox[direction] -= delta / 2;
             }
+
             let stackUpdate = stack;
-            stackUpdate[stackUpdate.length - 1] = topBox;
-            setStack(stackUpdate);
+            stackUpdate.pop();
+            stackUpdate.push({
+                x: topBox.x,
+                z: topBox.z,
+                height: topBox.y,
+                width: prevBox.width,
+                depth: prevBox.depth,
+                [checkSize]: overlap,
+            });
+
+            setStack([...stackUpdate]);
             generateBox();
         }
         setFallingStack((prev) => {
@@ -161,11 +141,8 @@ function App() {
             return [
                 ...prev,
                 {
-                    x: prev[prev.length - 1].x,
-                    y: prev[prev.length - 1].y + 1,
-                    z: prev[prev.length - 1].z,
-                    width: prev[prev.length - 1].width,
-                    depth: prev[prev.length - 1].depth,
+                    ...prev[prev.length - 1],
+                    height: prev[prev.length - 1].height + 1,
                 },
             ];
         });
@@ -187,37 +164,48 @@ function App() {
             if (index === stack.length - 1) {
                 key = index;
             }
-            return (
-                <BoxModel
-                    key={key}
-                    xSize={box.width}
-                    zSize={box.depth}
-                    animate={animate}
-                    height={box.y}
-                    xPos={box.x}
-                    zPos={box.z}
-                    direction={direction}
-                    gameStarted={gameStarted}
-                    crossedLimit={() => crossedLimit()}
-                    updatePosition={setTopBoxPosition}
-                />
-            );
+            if (index === stack.length - 1 && gameStarted) {
+                return (
+                    <BoxModel
+                        key={key}
+                        xpos={box.x}
+                        zpos={box.z}
+                        width={box.width}
+                        depth={box.depth}
+                        animate={animate}
+                        height={box.height}
+                        direction={direction}
+                        gameStarted={gameStarted}
+                        crossedLimit={() => crossedLimit()}
+                        updatePosition={setTopBoxPosition}
+                    />
+                );
+            } else {
+                return (
+                    <SolidBox
+                        key={key}
+                        xpos={box.x}
+                        zpos={box.z}
+                        width={box.width}
+                        depth={box.depth}
+                        height={box.height}
+                    />
+                );
+            }
         });
     };
 
     const startNewGame = async () => {
         if (!gameStarted) {
             setFallingStack([]);
-            setStack([{ x: 0, y: 0, z: 0, width: 3, depth: 3 }]);
+            setStack([{ height: 0, width: 3, depth: 3, x: 0, z: 0 }]);
             setTopBoxPosition({
                 x: 0,
                 y: 0,
                 z: 0,
-                width: 3,
-                depth: 3,
             });
             setGameStarted(true);
-            await new Promise((resolve) => setTimeout(resolve, 500));
+            await new Promise((resolve) => setTimeout(resolve, 250));
             generateBox();
         }
     };
@@ -235,6 +223,9 @@ function App() {
     };
 
     const crossedLimit = () => {
+        let stackUpdate = stack;
+        stackUpdate.pop();
+        setStack([...stackUpdate]);
         setGameStarted(false);
     };
 
@@ -243,13 +234,11 @@ function App() {
             if (stack.length < 3) {
                 return [0, 3, 4];
             }
-            console.log("Cam pos height:", stack.length);
             return [0, stack.length / 2 + 2, 4];
         }
         if (stack.length < 3) {
             return [0, 4, 4];
         }
-        console.log("Cam pos height:", stack.length + 2);
         return [0, stack.length + 2, 4];
     };
 
@@ -262,11 +251,7 @@ function App() {
 
     return (
         <>
-            <div
-                className="app-wrapper"
-                style={{ backgroundColor: BGColor }}
-                onKeyUp={(e) => handleButton(e)}
-            >
+            <div className="app-wrapper" style={{ backgroundColor: BGColor }}>
                 {!gameStarted && (
                     <Screen score={stack.length - 1} startGame={startNewGame} />
                 )}
